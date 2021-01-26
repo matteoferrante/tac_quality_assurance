@@ -1,0 +1,68 @@
+### Instruction Here : https://discuss.streamlit.io/t/using-pyinstaller-or-similar-to-create-an-executable/902/18 ###
+
+
+1-> Make a wrapper script: run_main.py
+
+#### run_main.py ####
+import streamlit.cli
+
+if __name__ == '__main__':
+    streamlit.cli._main_run_clExplicit('main.py', 'streamlit run')
+
+
+
+#### END OF Wrapper ###
+
+
+2 -> add following lines to ${YOUR_CONDA_ENV}/lib/site-packages/streamlit/cli.py
+
+### In file ...cli.py ###
+def _main_run_clExplicit(file, command_line, args=[ ]):
+    streamlit._is_running_with_streamlit = True
+    bootstrap.run(file, command_line, args)
+
+#####
+
+
+3 -> Create ./hooks/hook-streamlit.py
+
+### hook-streamlit.py ###
+from PyInstaller.utils.hooks import copy_metadata
+datas = copy_metadata('streamlit')
+
+####
+
+4-> create ./.streamlit/config.toml
+
+### config.toml ###
+
+[global]
+developmentMode = false
+
+[server]
+port = 8501
+
+
+#####
+
+5-> Edit .spec files create ->
+####  la cosa importante è modificare datas=[()] e aggiungere setrecursionlimit ####
+
+import sys
+sys.setrecursionlimit(4000)
+
+
+block_cipher = None
+
+a = Analysis(['run_main.py'],
+             pathex=['.'],
+             binaries=[],
+             datas=[(r"C:\Users\matte\miniconda3\envs\ieo_env\Lib\site-packages\altair\vegalite\v4\schema\vega-lite-schema.json",r"./altair/vegalite/v4/schema/"),(r"C:\Users\matte\miniconda3\envs\ieo_env\Lib\site-packages\streamlit\static",r"./streamlit/static")],
+            ...,
+            noarchive=False)
+pyz = PYZ(...)
+exe = EXE(...)
+
+#####
+
+
