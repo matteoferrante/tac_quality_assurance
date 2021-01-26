@@ -7,3 +7,11 @@
 *.iml
 out
 gen
+cart/__pycache__/
+iodine/__pycache__/
+linearity/__pycache__/
+lowcontrast/__pycache__/
+resolution/__pycache__/
+thickness/__pycache__/
+uniformity/__pycache__/
+util/__pycache__/
