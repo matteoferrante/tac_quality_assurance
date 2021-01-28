@@ -90,7 +90,7 @@ def check_contrast(means, lcd_expected=[5.096, 3.647, 2.278, 1.451, 1.105, 0.812
             si = std_final[j]
             li = lcd_final[j]
             y = norm.pdf(x, mi, si)
-            ax[0, j].hist(m, normed=1)
+            ax[0, j].hist(m, density=1)
             ax[0, j].plot(x, y, color='black')
             txt = f'Fit output:\nmu={round(mi, 2)}\nsigma={round(si, 2)}\nLCD:{round(li, 3)}'
             ax[0, j].text(-3.5 * si, max(y) * 0.75, txt,
@@ -105,7 +105,7 @@ def check_contrast(means, lcd_expected=[5.096, 3.647, 2.278, 1.451, 1.105, 0.812
             si = std_final[j]
             li = lcd_final[j]
             y = norm.pdf(x, mi, si)
-            ax[1, j - 3].hist(m, normed=1)
+            ax[1, j - 3].hist(m, density=1)
             ax[1, j - 3].plot(x, y, color='black')
             txt = f'Fit output:\nmu={round(mi, 2)}\nsigma={round(si, 2)}\nLCD:{round(li, 3)}'
             ax[1, j - 3].text(-3.5 * si, max(y) * 0.75, txt,

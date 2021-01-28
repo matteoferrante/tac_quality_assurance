@@ -9,6 +9,9 @@ from util.legacy_writer import legacyWriter
 
 
 debug=True
+baseline = [((308, 187), (26, 26), -45), ((277, 219), (24, 24), -45.6), ((252, 248), (20, 20), -45.6),
+            ((229, 275), (16, 16), -45.6), ((208, 298), (12, 12), -45.6)]
+
 
 def get_data(dcm_slice):
     """Function to get data and rescale to standard TC values"""
@@ -255,19 +258,24 @@ def test_contrast_resolution(dcm_img,legacy=None,sheet=None,filter="std",debug=T
                 center_squares.append(squares[i])
         sorted_squares = sorted(center_squares, key=lambda x: x[0][0], reverse=True)
 
+    if len(sorted_squares)<5:
+        print(f"[DEBUG] -> can't find all squares via edge detection, use default list")
+        st.markdown(f"<font color='orange'>[WARNING]</font> -> can't find all squares via edge detection, use default list",unsafe_allow_html=True)
+        sorted_squares=baseline
+
 
     if debug:
         print(f"[DEBUG] showing squares ..")
 
         drawing = np.zeros((gray.shape[0], gray.shape[1], 3), dtype=np.uint8)
-        for i, c in enumerate(squares):
+        for i, c in enumerate(sorted_squares):
             # contour
             # cv2.drawContours(display, squares, i, (255,255,255))
             # ellipse
             # if c.shape[0] > 5:
             #    cv2.ellipse(display, minEllipse[i],(255,255,255), 2)
             # rotated rectangle
-            box = cv2.boxPoints(squares[i])
+            box = cv2.boxPoints(sorted_squares[i])
             box = np.intp(box)  # np.intp: Integer used for indexing (same as C ssize_t; normally either int32 or int64)
             cv2.drawContours(display, [box], 0, (255, 255, 255))
 
