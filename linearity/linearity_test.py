@@ -10,6 +10,8 @@ import streamlit as st
 import matplotlib.pyplot as plt
 
 
+base={'nord': (256, 376, 10), 'sud': (256, 136, 10), 'est': (376, 256, 10), 'ovest': (136, 256, 10), 'sudovest': (198, 152, 10), 'sudest': (314, 152, 10), 'nordest': (314, 360, 10), 'nordovest': (198, 360, 10)}
+
 def get_data(dcm_slice):
     """Function to get data and rescale to standard TC values"""
     print(f"[INFO] Linearly rescaling image using Slope and Intercept written in the DICOM header")
@@ -91,7 +93,7 @@ def find_circles_simmetry(circles,img,pix_dim, roi_diameter=10, tollerance=3):
         x_low, y_low = check_simmetry(x_expected, y_expected, cir)
         points["sud"] = (x_low, y_low, mean_r)
     else:
-        print(f"[INFO] {colored('NORD not found', 'orange')} manual roi placement needed..")
+        print(f"[INFO] {colored('NORD not found', 'red')} manual roi placement needed..")
         st.markdown(f"[INFO] <font color=‘red’>NORD not found</font> manual roi placement needed..",unsafe_allow_html=True)
     # find rightest
 
@@ -111,7 +113,7 @@ def find_circles_simmetry(circles,img,pix_dim, roi_diameter=10, tollerance=3):
         x_left, y_left = check_simmetry(x_expected, y_expected, cir)
         points["ovest"] = (x_left, y_left, mean_r)
     else:
-        print(f"[INFO] {colored('EST not found', 'orange')} manual roi placement needed..")
+        print(f"[INFO] {colored('EST not found', 'red')} manual roi placement needed..")
         st.markdown(f"[INFO] <font color=‘red’>EST not found</font> manual roi placement needed..",unsafe_allow_html=True)
     # get the remaining circles
     print(f"\n\n[INFO] selecting remaining points")
@@ -157,6 +159,7 @@ def find_circles_simmetry(circles,img,pix_dim, roi_diameter=10, tollerance=3):
         st.markdown(f"[<font color=‘orange’>WARNING</font>] wasn't possible to find obliques inserts. Manual ROI placement required!",unsafe_allow_html=True)
     print(f"[INFO] points found: \t{len(points)}")
     st.write(f"[INFO] points found: \t{len(points)}")
+
     return points
 
 
@@ -358,7 +361,7 @@ def get_hu(lin_roi):
 def density_2_ct(density):
     return 1000*(density-1.)/1.
 
-def test_linearity(lin_img,legacy=None,sheet=None):
+def test_linearity(lin_img,legacy=None,sheet=None,option="fbp"):
 
     """The idea is to preprocess the image to find some cirlce with hough gradients, find the others by simmetry and test the density vs ct number"""
 
@@ -370,10 +373,16 @@ def test_linearity(lin_img,legacy=None,sheet=None):
     circles, display = find_native_circles(img)  # start finding circles
     points=find_circles_simmetry(circles,img,pix_dim)     #complete circles search
 
+
+
+    if len(points)!=8:
+        print(f"{colored('[WARNING]','red')}[WARNING] Could not find all the circles. Using default list instead")
+        st.markdown(f"[<font color='orange'>WARNING</font>] Could not find all the circles. Using default list instead",unsafe_allow_html=True)
+        points=base
     #eventually manual changes are possible
 
     mean_r=int((roi_diameter//2)/pix_dim[0])
-    checking=True
+    checking=False
     l=0
     while checking:
         new,bw=check_roi(display,mean_r,points)
@@ -408,4 +417,4 @@ def test_linearity(lin_img,legacy=None,sheet=None):
         print(f"[INFO] legacy mode: work on {legacy} in {sheet}")
         st.write(f"[INFO] legacy mode: work on {legacy} in {sheet}")
         leg=legacyWriter(legacy,sheet)
-        leg.write_linearity_report(lin)
+        leg.write_linearity_report(lin,option)

@@ -15,7 +15,8 @@ def test_uniformity(dcm_img,legacy=None,sheet=None,tipology="body"):
         max_difference=10
     elif tipology=="head":
         max_difference = 3
-
+    elif tipology=="multislice_monoenergetic":
+        max_difference = 3
 
     print(f"[INFO] UNIFORMITY, NOISE AND CT NUMBER CHECK - {tipology.upper()} MODE")
     st.write(f"[INFO] UNIFORMITY, NOISE AND CT NUMBER CHECK - {tipology.upper()} MODE")
@@ -59,5 +60,5 @@ def test_uniformity(dcm_img,legacy=None,sheet=None,tipology="body"):
             leg.write_uniformity_body_report(df)
         elif tipology=="head":
             leg.write_uniformity_head_report(df)
-        elif tipology=="multislice_monoergetic":
+        elif tipology=="multislice_monoenergetic":
             leg.write_uniformity_monoenergetic_report(df)

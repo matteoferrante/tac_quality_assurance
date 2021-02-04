@@ -23,9 +23,12 @@ from util.refresh_state import *
 from util.refresh_state import _get_state
 
 report=[]
-test_dict={"Linearity":["fbp","ar"],"Low Contrast":["227FOV"],"Resolution":["std","bone"],"Uniformity":["head","body","multislice","multislice_monoenergetic"],"Thickness":["single_slice","multi_slice"],"Cart":["Cart displacement"],"Iodine":["Iodine"]}
 
 
+#test_dict={"Linearity":["fbp","ar"],"Low Contrast":["227FOV"],"Resolution":["std","bone"],"Uniformity":["head","body","multislice","multislice_monoenergetic"],"Thickness":["single_slice","multi_slice"],"Cart":["Cart displacement"],"Iodine":["Iodine"]}
+
+catphan_dict={"Linearity":["fbp","asir"],"Resolution":["std","bone"],"Thickness":["single_slice","multi_slice"],"Cart":["Cart displacement"]}
+ge_dict={"Low Contrast":["227FOV"],"Resolution":["std","bone"],"Uniformity":["head","body","multislice","multislice_monoenergetic"],"Iodine":["Iodine"]}
 
 st.header("TAC QUALITY ASSURANCE")
 
@@ -93,10 +96,15 @@ def get_data(dcm_slice):
 
 
 machine = st.sidebar.selectbox(
-    "Which tomograph are you going to test?",
-    ("Discovery", "GE", "Un altro")
+    "Which phantom are you going to test?",
+    ("GE", "Catphan")
 )
 
+
+if machine=="GE":
+    test_dict=ge_dict
+elif machine=="Catphan":
+    test_dict = catphan_dict
 
 test = st.sidebar.selectbox(
     "Which test are you going to do?",
@@ -169,7 +177,7 @@ if file is not None:
             excel=None
 
         if test=="Linearity":
-            test_linearity(im_list[0],excel,sheet)
+            test_linearity(im_list[0],excel,sheet,option)
 
         elif test=="Uniformity":
             #disambiguation for multislice or single slice
@@ -182,7 +190,13 @@ if file is not None:
                 test_uniformity(im_list[0],excel,sheet,option)
 
         elif test=="Resolution":
-            test_contrast_resolution(im_list[0],excel,sheet,option)
+            if machine=="Catphan":
+                #test_contrast_resolution(im_list[0],excel,sheet,option)
+                test_contrast_resolution_catphan(im_list[0],excel,sheet,option)
+
+            elif machine=="GE":
+
+                test_contrast_resolution(im_list[0],excel,sheet,option)
 
         elif test=="Thickness":
             #disamiguation

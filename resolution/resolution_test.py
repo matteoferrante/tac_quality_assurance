@@ -24,6 +24,36 @@ def get_data(dcm_slice):
 
 
 
+
+def select_roi_catphan(img, c_x, c_y, inner_r):
+
+    """Function to get data and rescale to standard TC values, similar to select_roi but takes directly the inner radius in pixel"""
+    print(f"[INFO] selecting the ROI with center {c_x, c_y} with {inner_r} px of radius")
+    d = inner_r * 2
+
+    # get the center
+    # c_x,c_y=img.shape[0]//2,img.shape[1]//2
+    # create a rectungular roi
+
+    # generate rect mask with value -3000
+
+    background_mask = np.zeros(img.shape)
+
+    mask = cv2.circle(background_mask, (c_x, c_y), d // 2, color=(255, 255, 255), thickness=-1)
+    mask = mask.astype("uint8")
+
+    res = cv2.bitwise_and(img, img, mask=mask)
+
+    # generate a lookup table to keep trace of values inside the selected roi
+    back_circle = cv2.circle(background_mask, (c_x, c_y), d // 2, color=(255, 255, 255), thickness=-1)
+    back_circle = back_circle.astype("uint8")
+    lookup = cv2.bitwise_and(background_mask, background_mask, mask=back_circle)
+
+    lookup = lookup != 255
+
+    return res, lookup
+
+
 def select_roi(img, c_x, c_y, diameter, pix_dim, save=False, outname="roi"):
 
     """This function take as input img, x,y,d and generate a circular ROI"""
@@ -301,3 +331,102 @@ def test_contrast_resolution(dcm_img,legacy=None,sheet=None,filter="std",debug=T
         st.write(f"[INFO] legacy mode: work on {legacy} in {sheet}")
         leg = legacyWriter(legacy, sheet)
         leg.write_resolution_report(means,w,p,stds,std_w,std_p,filter)
+
+
+
+
+
+
+def test_contrast_resolution_catphan(dcm_img,legacy=None,sheet=None,filter="std",debug=True):
+    #ris_img = pydicom.dcmread(path)  # load image for linear spacing
+    img, pix_dim = get_data(dcm_img)  # rescale img
+    print(f"[INFO Running contrast and resolution test for Catphan phantom..]")
+    st.write(f"[INFO Running contrast and resolution test for Catphan phantom..]")
+
+    angles = [-27.263,-50.386,-74.330,-93.947,-112.642,-131.928,-149.233,-166.894,-178.693,167,149.998,136.196,120.356]
+    #angles=  [-25,-50,-75,-95,-112,-130,-150,-165,-180,170,150,135,120]
+    outer_R = 95
+    inner_R = 12
+    radis=[13,11,11,8,6,7,6,5,4,4,4,4,3]
+    rois = []
+    for (i,alfa) in enumerate(angles):
+        # compute the center
+        x = int(round(outer_R * math.cos(alfa * math.pi / 180.), 0)) + img.shape[0] // 2
+        y = -int(round(outer_R * math.sin(alfa * math.pi / 180.), 0)) + img.shape[1] // 2
+        rois.append((x, y, radis[i]))
+    metallic,background,noise=check_contrast_resolution_catphan(img,rois,option=filter)
+
+    if debug:
+        #show img with rois
+        drawing=img.copy()
+        for i in rois:
+            x,y,inner_R=i
+            cv2.circle(drawing, (x, y), inner_R, (255, 255, 255), 2)
+
+        fig,ax=plt.subplots(1)
+        ax.imshow(drawing,cmap="gray")
+        st.write(fig)
+
+    if legacy is not None:
+        print(f"[INFO] legacy mode: work on {legacy} in {sheet}")
+        st.write(f"[INFO] legacy mode: work on {legacy} in {sheet}")
+        leg = legacyWriter(legacy, sheet)
+        leg.write_resolution_catphan_report(metallic,background,noise,filter)
+
+
+
+
+
+def metallic_insert_value(img):
+    print(f"[INFO] Computing position and value of metallic insert..")
+    st.write(f"[INFO] Computing position and value of metallic insert..")
+    # check position
+    cropped = img[280:305, 330:360]
+    dst = np.zeros(cropped.shape)
+    cv2.normalize(cropped, dst, 0, 255, cv2.NORM_MINMAX)
+    # thresh
+    ret, thresh = cv2.threshold(dst, 110, 255, cv2.THRESH_BINARY)
+    thresh = thresh.astype("uint8")
+    conts, hier = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    rect = cv2.minAreaRect(conts[0])
+    c_x, c_y = rect[0]
+    metallic_r = 4
+    c_x = int(round(c_x, 0))
+    c_y = int(round(c_y, 0))
+
+    res, lookup = select_roi_catphan(cropped, c_x, c_y, metallic_r)
+    metallic_value = np.mean(mask_values(res, lookup))
+    return metallic_value
+
+
+def check_contrast_resolution_catphan(img, rois, option):
+    metallic = metallic_insert_value(img)
+
+    if option=="bone":
+        end=12
+    elif option=="std":
+        end=8
+
+    noise = []
+    for roi in rois[:end]:
+        res, lookup = select_roi_catphan(img, roi[0], roi[1], roi[2])
+        noise.append(np.std(mask_values(res, lookup)))
+
+    # compute the mean value at the center
+    res, lookup = select_roi_catphan(img, img.shape[0] // 2, img.shape[1] // 2, 15)
+    background = np.mean(mask_values(res, lookup))
+
+    metallic = 1200
+    diff = metallic - background
+
+    MTF = [222 * j / diff for j in noise]
+
+    # interpolate 50%
+    x = np.arange(0, len(MTF), 1)
+    m, b = np.polyfit(x, MTF, 1)
+
+    target_MTF = (50 - b) / m
+
+    print(f"[INFO] test completed with 50% MTF value found for {target_MTF}..")
+    st.write(f"[INFO] test completed with 50% MTF value found for {target_MTF}..")
+    return metallic,background,noise
