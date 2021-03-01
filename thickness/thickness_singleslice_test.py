@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 
 
 
-
 def get_data(dcm_slice):
     """Function to get data and rescale to standard TC values"""
     print(f"[INFO] Linearly rescaling image using Slope and Intercept written in the DICOM header")
@@ -41,8 +40,11 @@ def check_thickness_lines(keptRect, center, pix_dim, targetvalue=2.5, distance=0
     values=[]
     opt=[]
     nord, sud, est, ovest = keptRect
+
+    draw=center.copy()
+
     # default values
-    bb, hh, dx, dy = 20, 3, 2, -1
+    bb, hh, dx, dy = 40, 4, -10, -1
     print(f"[INFO] computing thickness of sud insert..")
     st.write(f"[INFO] computing thickness of sud insert..")
 
@@ -51,7 +53,13 @@ def check_thickness_lines(keptRect, center, pix_dim, targetvalue=2.5, distance=0
 
     # sudRect=(x, y, b,h)
     x, y, b, h = sud[0]
-    sud_crop = center[y:y + hh, x:x + bb]
+    sud_crop = center[y+dy:y + hh, x+dx:x + bb]
+
+    coor=[(x+dx,y+dy),(x+bb,y+hh)]
+    cv2.rectangle(draw,coor[0],coor[1],color=(255,255,255),thickness=1)
+
+
+
     vals = np.mean(sud_crop, axis=0)
     computed=computeThickness(sud_crop,pix_dim)
     thickness.append(computed[0])
@@ -65,7 +73,10 @@ def check_thickness_lines(keptRect, center, pix_dim, targetvalue=2.5, distance=0
 
     # nordRect=(x, y, b,h)
     x, y, b, h = nord[0]
-    nord_crop = center[y:y + hh, x:x + bb]
+    coor=[(x+dx,y+dy),(x+bb,y+hh)]
+    cv2.rectangle(draw,coor[0],coor[1],color=(255,255,255),thickness=1)
+
+    nord_crop = center[y+dy:y + hh, x+dx:x + bb]
     vals = np.mean(nord_crop, axis=0)
     computed=computeThickness(nord_crop,pix_dim)
     thickness.append(computed[0])
@@ -79,7 +90,10 @@ def check_thickness_lines(keptRect, center, pix_dim, targetvalue=2.5, distance=0
 
     # estRect=(x, y, b,h)
     x, y, b, h = est[0]
-    est_crop = np.transpose(center[y:y + bb, x:x + hh])
+
+    coor=[(x+dy,y+dx),(x+hh,y+bb)]
+    cv2.rectangle(draw,coor[0],coor[1],color=(255,255,255),thickness=1)
+    est_crop = np.transpose(center[y+dx:y + bb, x+dy:x + hh])
     plt.imshow(est_crop)
     vals = np.mean(est_crop, axis=0)
 
@@ -95,17 +109,25 @@ def check_thickness_lines(keptRect, center, pix_dim, targetvalue=2.5, distance=0
     # y=int(np.min(ovest,axis=0)[1])-dy
 
     x, y, b, h = ovest[0]
+
+    coor=[(x+dy,y+dx),(x+hh,y+bb)]
+    cv2.rectangle(draw,coor[0],coor[1],color=(255,255,255),thickness=1)
     # ovestRect=(x, y, b,h)
     # hh=[np.max(ovest,axis=0)[0]-x,h]
     # h=int(np.mean(hh))
 
-    ovest_crop = np.transpose(center[y:y + bb, x:x + hh])
+    ovest_crop = np.transpose(center[y+dx:y + bb, x+dy:x + hh])
     vals = np.mean(ovest_crop, axis=0)
     computed=computeThickness(ovest_crop,pix_dim)
 
     thickness.append(computed[0])
     values.append(computed[1])
     opt.append(computed[2])
+
+    fig,ax=plt.subplots(1)
+    ax.imshow(draw,cmap="gray")
+    st.write(fig)
+
 
     thick_mean = np.mean(thickness)
     print(f"[INFO] means found: {thickness}")
@@ -201,7 +223,7 @@ def computeThickness(roi,pix_dim):
 
     #HERE KEEP PROFILE
     vals=np.mean(roi,axis=0)
-    p0=[100,10,3,100]
+    p0=[100,20,3,100]
     popt, pcov = curve_fit(gauss, np.linspace(0,len(vals),len(vals)), vals,p0=p0, maxfev=1000)
     A, mu, sigma, offset = popt
     thick=math.tan(23/180.*math.pi)*2.35*sigma*pix_dim[0]   #questa potrebbe essere la cosa giusta

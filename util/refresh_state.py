@@ -53,7 +53,7 @@ class _SessionState:
         """Rerun the app with all state values up to date from the beginning to fix rollbacks."""
 
         # Ensure to rerun only once to avoid infinite loops
-        # caused by a constantly changing state value at each run.
+        # caused by a constantly changing state value at each run.bat.
         #
         # Example: state.value += 1
         if self._state["is_rerun"]:

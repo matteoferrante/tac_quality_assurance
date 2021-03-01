@@ -7,7 +7,7 @@ import streamlit as st
 import cv2
 import matplotlib.pyplot as plt
 from termcolor import colored
-
+import pandas as pd
 
 def get_data(dcm_slice):
     """Function to get data and rescale to standard TC values"""
@@ -137,6 +137,10 @@ def test_thickness_multislice(im_list, legacy, sheet, function):
         y.append(np.mean(cc[i]))
 
 
+    data=pd.DataFrame()
+    data["x"]=x
+    data["y"]=y
+    st.write(data)
     passed, fwhm, fig = check_thickness(x, y, reference_value=2.5, max_distance=0.2,function=function)
     st.write(fig)
 
